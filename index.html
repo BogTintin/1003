@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title> 保險 AI 助理</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;margin:0;background:#f6f7f9}
+    .container{max-width:760px;margin:40px auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
+    h1{margin:0 0 12px;font-size:20px}.tip{color:#667085;font-size:14px;margin-bottom:12px}
+    .chat{border:1px solid #e6e8eb;border-radius:12px;padding:12px;background:#fafbfc;height:480px;overflow-y:auto;white-space:pre-wrap}
+    .msg{margin:8px 0;line-height:1.6}.user{text-align:right}
+    .bubble{display:inline-block;padding:10px 12px;border-radius:12px;max-width:80%}
+    .bubble.user{background:#daf0ff}.bubble.bot{background:#eef0f3}
+    .row{display:flex;gap:8px;margin-top:12px}input,button{font-size:16px}
+    input{flex:1;padding:12px;border:1px solid #d0d5dd;border-radius:12px}
+    button{padding:12px 16px;border:none;border-radius:12px;background:#1769ff;color:#fff;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .quick{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}.chip{padding:6px 10px;border-radius:999px;background:#eef4ff;color:#1b4dff;font-size:13px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>保險AI助理 （測試版） </h1>
+    <div class="tip">回覆格式包含「重點 → 條列 → 下一步」。Designed By Bog!</div>
+    <div class="quick" id="quick"></div>
+    <div class="chat" id="chat"></div>
+    <div class="row">
+      <input id="inp" placeholder="輸入問題，例如：35歲男，年繳3萬，想加強住院醫療…" />
+      <button id="btn">送出</button>
+    </div>
+  </div>
+<script>
+  // ⬇️ 等等把你的 Render 後端網址貼到這裡（例：https://xxx.onrender.com）
+  const DEFAULT_API = "https://one002aiagent.onrender.com";
+  const API_BASE = DEFAULT_API.replace(/\/$/,'');
+
+  const chatEl = document.getElementById('chat'), inp = document.getElementById('inp'),
+        btn = document.getElementById('btn'), quick = document.getElementById('quick');
+  const QUICK_TEMPLATES = [
+        '重視住院醫療，定期 vs 終身怎麼選？',
+        '想加醫療症保障：一次金 vs 實支實付如何取捨？',
+        '協助我幫客戶做保單健診',"醫療/投資型/外幣建議書討論",
+        "投資型保單基金標的推薦","外幣匯率資訊"  ];
+  const messages = [];
+  function addMsg(role, text){
+    const wrap=document.createElement('div'); wrap.className='msg '+(role==='user'?'user':'bot');
+    const b=document.createElement('div'); b.className='bubble '+(role==='user'?'user':'bot'); b.innerText=text;
+    wrap.appendChild(b); chatEl.appendChild(wrap); chatEl.scrollTop=chatEl.scrollHeight;
+  }
+  async function send(){
+    const q = inp.value.trim(); if(!q) return;
+    inp.value=''; btn.disabled=true; addMsg('user', q); messages.push({role:'user', content:q});
+    try{
+      const r = await fetch(`${API_BASE}/chat`, {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({user_id:'demo', messages})});
+      if(!r.ok){ const e = await r.json().catch(()=>({detail:r.statusText})); throw new Error(e.detail||'Server error'); }
+      const data = await r.json(); const reply = data.reply || '(無回覆)';
+      addMsg('assistant', reply); messages.push({role:'assistant', content:reply});
+    }catch(e){ addMsg('assistant', `發生錯誤：${e.message}`); }
+    finally{ btn.disabled=false; inp.focus(); }
+  }
+  btn.addEventListener('click', send);
+  inp.addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
+  QUICK_TEMPLATES.forEach(t=>{ const c=document.createElement('div'); c.className='chip'; c.innerText=t; c.onclick=()=>{inp.value=t; inp.focus();}; quick.appendChild(c); });
+</script>
+</body>
+</html>
